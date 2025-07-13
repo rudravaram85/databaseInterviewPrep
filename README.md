@@ -838,4 +838,141 @@ public List<Employee> callStoredProcedure(Integer deptId) {
 
 ---
 
-Would you like a working Spring Boot project template with this code?
+Great! Here's how you can:
+
+* ✅ Create **Materialized Views** for both **Banking** and **E-commerce** domains
+* ✅ Set them to **refresh once per day**
+
+> ⚠️ Note: Support for **materialized views** and **scheduled refresh** depends on the **database system** (e.g., PostgreSQL, Oracle, MySQL, SQL Server). Below, I provide implementations for:
+
+---
+
+## 🔹 1. PostgreSQL: Materialized Views + Daily Refresh via `cron` (pg\_cron)
+
+### ✅ Banking: High Value Accounts
+
+```sql
+CREATE MATERIALIZED VIEW mv_high_value_accounts AS
+SELECT account_number, customer_id, balance
+FROM accounts
+WHERE balance > 100000
+WITH DATA;
+```
+
+### ✅ E-commerce: Daily Sales Summary
+
+```sql
+CREATE MATERIALIZED VIEW mv_daily_order_summary AS
+SELECT customer_id, COUNT(*) AS total_orders, SUM(quantity) AS total_items
+FROM orders
+GROUP BY customer_id
+WITH DATA;
+```
+
+### 🔁 Schedule Daily Refresh using `pg_cron`
+
+1. Install the `pg_cron` extension (if not already):
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+```
+
+2. Schedule a daily refresh (e.g., 2 AM):
+
+```sql
+SELECT cron.schedule('refresh_mv_accounts', '0 2 * * *', $$ REFRESH MATERIALIZED VIEW mv_high_value_accounts; $$);
+SELECT cron.schedule('refresh_mv_orders', '0 2 * * *', $$ REFRESH MATERIALIZED VIEW mv_daily_order_summary; $$);
+```
+
+---
+
+## 🔹 2. Oracle: Materialized Views + Automatic Refresh
+
+### ✅ Banking: High Value Accounts
+
+```sql
+CREATE MATERIALIZED VIEW mv_high_value_accounts
+BUILD IMMEDIATE
+REFRESH COMPLETE
+START WITH SYSDATE
+NEXT SYSDATE + 1
+AS
+SELECT account_number, customer_id, balance
+FROM accounts
+WHERE balance > 100000;
+```
+
+### ✅ E-commerce: Daily Orders Summary
+
+```sql
+CREATE MATERIALIZED VIEW mv_daily_order_summary
+BUILD IMMEDIATE
+REFRESH COMPLETE
+START WITH SYSDATE
+NEXT SYSDATE + 1
+AS
+SELECT customer_id, COUNT(*) AS total_orders, SUM(quantity) AS total_items
+FROM orders
+GROUP BY customer_id;
+```
+
+Oracle automatically refreshes based on `START WITH` and `NEXT` clauses.
+
+---
+
+## 🔹 3. MySQL: Emulated Materialized Views via Table + Event Scheduler
+
+MySQL doesn’t support materialized views natively. You simulate them:
+
+### Step 1: Create Table to Hold Data
+
+```sql
+CREATE TABLE mv_high_value_accounts AS
+SELECT account_number, customer_id, balance
+FROM accounts
+WHERE balance > 100000;
+
+CREATE TABLE mv_daily_order_summary AS
+SELECT customer_id, COUNT(*) AS total_orders, SUM(quantity) AS total_items
+FROM orders
+GROUP BY customer_id;
+```
+
+### Step 2: Create SQL Event to Refresh Daily
+
+```sql
+-- Enable Event Scheduler
+SET GLOBAL event_scheduler = ON;
+
+-- Event for Banking
+CREATE EVENT refresh_mv_high_value_accounts
+ON SCHEDULE EVERY 1 DAY
+DO
+  REPLACE INTO mv_high_value_accounts
+  SELECT account_number, customer_id, balance
+  FROM accounts
+  WHERE balance > 100000;
+
+-- Event for E-commerce
+CREATE EVENT refresh_mv_daily_order_summary
+ON SCHEDULE EVERY 1 DAY
+DO
+  REPLACE INTO mv_daily_order_summary
+  SELECT customer_id, COUNT(*) AS total_orders, SUM(quantity) AS total_items
+  FROM orders
+  GROUP BY customer_id;
+```
+
+---
+
+## ✅ Summary
+
+| DBMS       | Materialized View | Auto Refresh    |
+| ---------- | ----------------- | --------------- |
+| PostgreSQL | ✅ Supported       | ✅ via `pg_cron` |
+| Oracle     | ✅ Supported       | ✅ with built-in |
+| MySQL      | ❌ (emulated)      | ✅ with Events   |
+
+---
+
+Would you like this script tailored for a specific RDBMS (e.g. PostgreSQL, Oracle, etc.) and packaged into a `.sql` file?
