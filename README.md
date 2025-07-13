@@ -974,5 +974,114 @@ DO
 | MySQL      | ❌ (emulated)      | ✅ with Events   |
 
 ---
+Certainly! Below are **5 SQL queries using core subqueries** based on the **banking** and **e-commerce** schema we created earlier. These include various types of subqueries such as **scalar**, **correlated**, and **IN/EXISTS** subqueries.
 
-Would you like this script tailored for a specific RDBMS (e.g. PostgreSQL, Oracle, etc.) and packaged into a `.sql` file?
+---
+
+## 🔹 1. **Banking** — Find customers who have at least one account with a balance above the average balance
+
+### 📘 Type: Correlated Subquery
+
+```sql
+SELECT customer_name
+FROM customers
+WHERE customer_id IN (
+    SELECT customer_id
+    FROM accounts
+    WHERE balance > (
+        SELECT AVG(balance)
+        FROM accounts
+    )
+);
+```
+
+📌 **Explanation**: Subquery calculates the average balance. Outer query finds customers whose **account balance is greater than this average**.
+
+---
+
+## 🔹 2. **E-commerce** — List products that were ordered at least once
+
+### 📘 Type: IN Subquery
+
+```sql
+SELECT product_name
+FROM products
+WHERE product_id IN (
+    SELECT DISTINCT product_id
+    FROM orders
+);
+```
+
+📌 **Explanation**: Inner query pulls all product IDs from the `orders` table. Outer query filters products that exist in at least one order.
+
+---
+
+## 🔹 3. **Banking** — Find the account with the highest balance per branch
+
+### 📘 Type: Correlated Subquery
+
+```sql
+SELECT account_number, branch_id, balance
+FROM accounts a
+WHERE balance = (
+    SELECT MAX(balance)
+    FROM accounts
+    WHERE branch_id = a.branch_id
+);
+```
+
+📌 **Explanation**: For each account, subquery gets the max balance **within that same branch**.
+
+---
+
+## 🔹 4. **E-commerce** — Find customers who ordered the most expensive product
+
+### 📘 Type: Scalar Subquery
+
+```sql
+SELECT DISTINCT c.customer_name
+FROM ecommerce_customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.product_id = (
+    SELECT product_id
+    FROM products
+    ORDER BY price DESC
+    LIMIT 1
+);
+```
+
+📌 **Explanation**: The subquery finds the product with the highest price. Main query returns customers who ordered it.
+
+---
+
+## 🔹 5. **Banking** — Show accounts whose balance is greater than the total balance of customer ID 1
+
+### 📘 Type: Scalar Subquery
+
+```sql
+SELECT account_number, balance
+FROM accounts
+WHERE balance > (
+    SELECT SUM(balance)
+    FROM accounts
+    WHERE customer_id = 1
+);
+```
+
+📌 **Explanation**: Subquery sums up all balances of customer 1. The outer query finds accounts **with more than that**.
+
+---
+
+### ✅ Summary of Subquery Types Used:
+
+| # | Query Description                                | Subquery Type   |
+| - | ------------------------------------------------ | --------------- |
+| 1 | Customers with above-average balance accounts    | Correlated      |
+| 2 | Products that were ever ordered                  | IN Subquery     |
+| 3 | Max balance per branch                           | Correlated      |
+| 4 | Customers who ordered the most expensive product | Scalar Subquery |
+| 5 | Accounts with balance > total of customer ID 1   | Scalar Subquery |
+
+---
+
+Would you like a `.sql` file with these queries formatted and commented?
