@@ -2223,6 +2223,244 @@ JOIN products p ON p.product_id = oi.product_id;
 
 ---
 
-Would you like **5 more bonus queries** or want me to generate a `.sql` file containing all of these queries?
+Excellent! Below is a set of **5 complex SQL queries**, each one designed to involve **at least 5 core SQL concepts** and **at least 5 tables** from your e-commerce schema. These queries simulate **real-world business requirements** and are built for **performance, clarity, and insight generation**.
+
+---
+
+## 🔥 Supercharged SQL Queries
+
+Each query uses:
+
+* **Joins** (inner/left)
+* **Aggregations**
+* **Window functions**
+* **Subqueries/CTEs**
+* **Case/Null handling**
+* **Filtering, ordering, grouping**
+
+---
+
+### 🔍 **Query 1: Premium Users Who Reviewed and Reordered Top-Selling Products**
+
+**📌 Business Requirement**:
+Find users who:
+
+1. Ordered and reviewed a product.
+2. Reordered the same product later.
+3. Are ranked in the top 10 by total spend.
+
+**💡 SQL Concepts Used**:
+
+* `JOIN`, `WINDOW FUNCTION`, `CTE`, `SUBQUERY`, `GROUP BY`, `CASE`, `ORDER BY`
+
+```sql
+WITH user_total_spend AS (
+    SELECT u.user_id, u.name, SUM(o.total_amount) AS total_spent
+    FROM users u
+    JOIN orders o ON u.user_id = o.user_id
+    GROUP BY u.user_id, u.name
+),
+ranked_users AS (
+    SELECT *, RANK() OVER (ORDER BY total_spent DESC) AS spend_rank
+    FROM user_total_spend
+),
+user_product_orders AS (
+    SELECT o.user_id, oi.product_id, COUNT(DISTINCT o.order_id) AS order_count
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    GROUP BY o.user_id, oi.product_id
+),
+user_reviews AS (
+    SELECT user_id, product_id
+    FROM reviews
+),
+qualified_users AS (
+    SELECT ruo.user_id, u.name, ruo.product_id, ruo.order_count
+    FROM user_product_orders ruo
+    JOIN user_reviews ur ON ruo.user_id = ur.user_id AND ruo.product_id = ur.product_id
+    JOIN users u ON u.user_id = ruo.user_id
+    WHERE ruo.order_count > 1
+)
+SELECT qu.user_id, qu.name, p.name AS product_name, ru.total_spent
+FROM qualified_users qu
+JOIN products p ON qu.product_id = p.product_id
+JOIN ranked_users ru ON qu.user_id = ru.user_id
+WHERE ru.spend_rank <= 10;
+```
+
+---
+
+### 🔍 **Query 2: Revenue Breakdown by Product, Category, and User’s Location**
+
+**📌 Business Requirement**:
+Show total revenue for each product, grouped by category and user’s city & state.
+
+**💡 SQL Concepts Used**:
+
+* `GROUP BY`, `JOIN`, `AGGREGATE`, `COALESCE`, `ORDER BY`, `DATE FUNCTIONS`
+
+```sql
+SELECT 
+    c.category_name,
+    p.name AS product_name,
+    a.city,
+    a.state,
+    COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_revenue
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+JOIN orders o ON oi.order_id = o.order_id
+JOIN users u ON o.user_id = u.user_id
+JOIN addresses a ON u.user_id = a.user_id
+WHERE o.status = 'Shipped'
+GROUP BY c.category_name, p.name, a.city, a.state
+ORDER BY total_revenue DESC;
+```
+
+---
+
+### 🔍 **Query 3: Top Performing Products with Reviews, Stock, and Cart Activity**
+
+**📌 Business Requirement**:
+Display products that:
+
+* Are in stock
+* Are in at least 2 carts
+* Have at least 2 reviews with average rating ≥ 4
+* Ranked by total order quantity
+
+**💡 SQL Concepts Used**:
+
+* `JOIN`, `AGGREGATE`, `GROUP BY`, `HAVING`, `RANK`, `CTE`
+
+```sql
+WITH product_reviews AS (
+    SELECT product_id, COUNT(*) AS review_count, AVG(rating) AS avg_rating
+    FROM reviews
+    GROUP BY product_id
+    HAVING COUNT(*) >= 2 AND AVG(rating) >= 4
+),
+product_cart_counts AS (
+    SELECT product_id, COUNT(DISTINCT cart_id) AS cart_count
+    FROM cart_items
+    GROUP BY product_id
+    HAVING COUNT(DISTINCT cart_id) >= 2
+),
+product_sales AS (
+    SELECT product_id, SUM(quantity) AS total_sold
+    FROM order_items
+    GROUP BY product_id
+)
+SELECT 
+    p.name AS product_name,
+    c.category_name,
+    p.stock_quantity,
+    ps.total_sold,
+    pr.review_count,
+    pr.avg_rating,
+    pc.cart_count
+FROM products p
+JOIN categories c ON p.category_id = c.category_id
+JOIN product_reviews pr ON p.product_id = pr.product_id
+JOIN product_cart_counts pc ON p.product_id = pc.product_id
+JOIN product_sales ps ON p.product_id = ps.product_id
+WHERE p.stock_quantity > 0
+ORDER BY ps.total_sold DESC;
+```
+
+---
+
+### 🔍 **Query 4: Fulfillment Speed Analysis by State and Category**
+
+**📌 Business Requirement**:
+Evaluate average hours between order and payment per state and product category.
+
+**💡 SQL Concepts Used**:
+
+* `JOIN`, `AGGREGATE`, `DATE_DIFF`, `WINDOW`, `GROUP BY`, `PARTITION BY`
+
+```sql
+SELECT 
+    a.state,
+    c.category_name,
+    ROUND(AVG(EXTRACT(EPOCH FROM (pay.payment_date - o.order_date)) / 3600), 2) AS avg_fulfillment_hours
+FROM orders o
+JOIN payments pay ON o.order_id = pay.order_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+JOIN users u ON o.user_id = u.user_id
+JOIN addresses a ON u.user_id = a.user_id
+WHERE o.status = 'Shipped'
+GROUP BY a.state, c.category_name
+ORDER BY avg_fulfillment_hours;
+```
+
+---
+
+### 🔍 **Query 5: Loyalty Tier Assignment Based on Activity**
+
+**📌 Business Requirement**:
+Classify users into loyalty tiers:
+
+* **Platinum**: >\$2000 spent and ≥5 reviews
+* **Gold**: \$1000–\$2000 and ≥2 reviews
+* **Silver**: otherwise
+
+**💡 SQL Concepts Used**:
+
+* `JOIN`, `CASE`, `CTE`, `AGGREGATE`, `SUBQUERY`, `GROUP BY`, `WINDOW`
+
+```sql
+WITH user_spend AS (
+    SELECT u.user_id, u.name, SUM(o.total_amount) AS total_spent
+    FROM users u
+    JOIN orders o ON u.user_id = o.user_id
+    GROUP BY u.user_id, u.name
+),
+user_review_counts AS (
+    SELECT user_id, COUNT(*) AS review_count
+    FROM reviews
+    GROUP BY user_id
+),
+tiered_users AS (
+    SELECT 
+        us.user_id,
+        us.name,
+        us.total_spent,
+        COALESCE(ur.review_count, 0) AS review_count,
+        CASE
+            WHEN us.total_spent > 2000 AND COALESCE(ur.review_count, 0) >= 5 THEN 'Platinum'
+            WHEN us.total_spent >= 1000 AND COALESCE(ur.review_count, 0) >= 2 THEN 'Gold'
+            ELSE 'Silver'
+        END AS loyalty_tier
+    FROM user_spend us
+    LEFT JOIN user_review_counts ur ON us.user_id = ur.user_id
+)
+SELECT * FROM tiered_users
+ORDER BY total_spent DESC;
+```
+
+---
+
+## 🧩 Summary of SQL Concepts Covered
+
+| Query | SQL Topics                                                       |
+| ----- | ---------------------------------------------------------------- |
+| 1     | `JOIN`, `CTE`, `WINDOW`, `SUBQUERY`, `GROUP BY`, `FILTER`        |
+| 2     | `JOIN`, `AGGREGATE`, `COALESCE`, `GROUP BY`, `ORDER BY`          |
+| 3     | `CTE`, `AGGREGATE`, `HAVING`, `JOIN`, `FILTER`, `ORDER`          |
+| 4     | `DATE`, `JOIN`, `GROUP BY`, `EXTRACT`, `ORDER BY`                |
+| 5     | `CASE`, `CTE`, `JOIN`, `COALESCE`, `AGGREGATE`, `CLASSIFICATION` |
+
+---
+
+Would you like me to:
+
+* Generate 5 more queries like these?
+* Deliver this in a downloadable `.sql` script?
+* Write accompanying business documentation for a project?
+
+Let me know how you'd like to expand this!
 
 
