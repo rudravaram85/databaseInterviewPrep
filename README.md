@@ -2897,7 +2897,96 @@ WHERE
 
 ---
 
-Would you like these structured into a **template or Excel format** for analysts or turned into reusable SQL scripts? I can also generate a few **dashboard mockups or KPIs** if you’re visualizing Netflix-style metrics.
+Sure! Here are 10 common MySQL DBA-related operations along with their sample queries:
+
+---
+
+### 1. **Create a new database**
+
+```sql
+CREATE DATABASE my_database;
+```
+
+---
+
+### 2. **Create a new user and grant privileges**
+
+```sql
+CREATE USER 'newuser'@'localhost' IDENTIFIED BY 'password123';
+GRANT ALL PRIVILEGES ON my_database.* TO 'newuser'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+---
+
+### 3. **Backup a database (using `mysqldump` from command line)**
+
+```bash
+mysqldump -u root -p my_database > my_database_backup.sql
+```
+
+---
+
+### 4. **Restore a database from a backup**
+
+```bash
+mysql -u root -p my_database < my_database_backup.sql
+```
+
+---
+
+### 5. **Show current running processes**
+
+```sql
+SHOW PROCESSLIST;
+```
+
+---
+
+### 6. **Check database size**
+
+```sql
+SELECT table_schema AS database_name,
+       ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS size_mb
+FROM information_schema.tables
+GROUP BY table_schema;
+```
+
+---
+
+### 7. **Monitor MySQL server status**
+
+```sql
+SHOW STATUS LIKE '%Threads%';
+```
+
+---
+
+### 8. **Add a new column to an existing table**
+
+```sql
+ALTER TABLE employees ADD COLUMN department VARCHAR(50);
+```
+
+---
+
+### 9. **Check the MySQL error log location**
+
+```sql
+SHOW VARIABLES LIKE 'log_error';
+```
+
+---
+
+### 10. **Optimize a table**
+
+```sql
+OPTIMIZE TABLE employees;
+```
+
+---
+
+If you want me to explain any of these operations or provide more complex DBA tasks, just ask!
 
 
 
