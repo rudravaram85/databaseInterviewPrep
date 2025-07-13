@@ -2776,7 +2776,128 @@ LEFT JOIN
 
 ---
 
-Would you like templates for turning business requirements into SQL consistently (like a form or checklist), or help documenting these queries for stakeholders?
+Great — let's tailor 3 business requirement breakdowns specifically for **Netflix**-type data. We'll focus on typical streaming service analytics use cases involving **users**, **subscriptions**, **viewing data**, **content**, and **engagement**.
+
+---
+
+### ✅ **1. Requirement:**
+
+**“Find the top 5 most-watched TV shows globally in Q2 2025.”**
+
+#### 🔍 Breakdown:
+
+| Element          | Description                              |
+| ---------------- | ---------------------------------------- |
+| **Goal**         | Identify globally top-performing content |
+| **Metric**       | `SUM(watch_time)` or `COUNT(view_id)`    |
+| **Entities**     | `views`, `titles`                        |
+| **Content type** | Only TV shows                            |
+| **Date filter**  | Q2 2025                                  |
+| **Group by**     | `title_name`                             |
+| **Order by**     | Descending watch time or view count      |
+| **Limit**        | 5                                        |
+
+#### 💻 SQL:
+
+```sql
+SELECT 
+    t.title_name,
+    SUM(v.watch_time_minutes) AS total_watch_time
+FROM 
+    views v
+JOIN 
+    titles t ON v.title_id = t.title_id
+WHERE 
+    t.content_type = 'TV Show'
+    AND v.view_date BETWEEN '2025-04-01' AND '2025-06-30'
+GROUP BY 
+    t.title_name
+ORDER BY 
+    total_watch_time DESC
+LIMIT 5;
+```
+
+---
+
+### ✅ **2. Requirement:**
+
+**“Calculate churn rate in the US for Standard and Premium plans in Q1 2025.”**
+
+#### 🔍 Breakdown:
+
+| Element        | Description                                    |
+| -------------- | ---------------------------------------------- |
+| **Goal**       | Measure customer retention                     |
+| **Metric**     | `(churned / starting_subscriptions)`           |
+| **Entities**   | `subscriptions`, `users`                       |
+| **Filters**    | Country = 'US', Plan = 'Standard' or 'Premium' |
+| **Time range** | Jan–Mar 2025                                   |
+| **Group by**   | Plan                                           |
+
+#### 💻 SQL:
+
+```sql
+WITH starting_subs AS (
+    SELECT user_id, plan_type
+    FROM subscriptions
+    WHERE start_date <= '2025-01-01'
+      AND (end_date IS NULL OR end_date >= '2025-01-01')
+      AND country = 'US'
+      AND plan_type IN ('Standard', 'Premium')
+),
+churned_subs AS (
+    SELECT user_id, plan_type
+    FROM subscriptions
+    WHERE end_date BETWEEN '2025-01-01' AND '2025-03-31'
+      AND country = 'US'
+      AND plan_type IN ('Standard', 'Premium')
+)
+SELECT 
+    s.plan_type,
+    COUNT(DISTINCT c.user_id) * 1.0 / COUNT(DISTINCT s.user_id) AS churn_rate
+FROM 
+    starting_subs s
+LEFT JOIN 
+    churned_subs c ON s.user_id = c.user_id AND s.plan_type = c.plan_type
+GROUP BY 
+    s.plan_type;
+```
+
+---
+
+### ✅ **3. Requirement:**
+
+**“Determine average daily watch time per user in India during June 2025.”**
+
+#### 🔍 Breakdown:
+
+| Element               | Description                                      |
+| --------------------- | ------------------------------------------------ |
+| **Goal**              | Understand engagement by geography               |
+| **Metric**            | `SUM(watch_time) / COUNT(DISTINCT days * users)` |
+| **Entities**          | `views`, `users`                                 |
+| **Date filter**       | June 2025                                        |
+| **Geographic filter** | `country = 'India'`                              |
+| **Group by**          | None (overall metric)                            |
+
+#### 💻 SQL:
+
+```sql
+SELECT 
+    SUM(v.watch_time_minutes) * 1.0 / 
+    (COUNT(DISTINCT v.view_date) * COUNT(DISTINCT v.user_id)) AS avg_daily_watch_time_per_user
+FROM 
+    views v
+JOIN 
+    users u ON v.user_id = u.user_id
+WHERE 
+    u.country = 'India'
+    AND v.view_date BETWEEN '2025-06-01' AND '2025-06-30';
+```
+
+---
+
+Would you like these structured into a **template or Excel format** for analysts or turned into reusable SQL scripts? I can also generate a few **dashboard mockups or KPIs** if you’re visualizing Netflix-style metrics.
 
 
 
