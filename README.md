@@ -2986,7 +2986,168 @@ OPTIMIZE TABLE employees;
 
 ---
 
-If you want me to explain any of these operations or provide more complex DBA tasks, just ask!
+Got it! Here are **15 more complex MySQL DBA tasks** with corresponding queries:
+
+---
+
+### 1. **Identify slow queries using the slow query log**
+
+```sql
+SHOW VARIABLES LIKE 'slow_query_log';
+-- Enable slow query log if disabled:
+SET GLOBAL slow_query_log = 'ON';
+SET GLOBAL slow_query_log_file = '/var/log/mysql/mysql-slow.log';
+```
+
+---
+
+### 2. **Analyze slow queries using `EXPLAIN`**
+
+```sql
+EXPLAIN SELECT * FROM orders WHERE customer_id = 1234;
+```
+
+---
+
+### 3. **Create a partitioned table**
+
+```sql
+CREATE TABLE sales (
+    sale_id INT NOT NULL,
+    sale_date DATE NOT NULL,
+    amount DECIMAL(10,2),
+    PRIMARY KEY (sale_id, sale_date)
+)
+PARTITION BY RANGE (YEAR(sale_date)) (
+    PARTITION p2019 VALUES LESS THAN (2020),
+    PARTITION p2020 VALUES LESS THAN (2021),
+    PARTITION pmax VALUES LESS THAN MAXVALUE
+);
+```
+
+---
+
+### 4. **Perform point-in-time recovery using binary logs**
+
+* Enable binary logging:
+
+```sql
+SHOW VARIABLES LIKE 'log_bin';
+-- If not enabled, add in my.cnf: log-bin=mysql-bin
+```
+
+* To apply logs to restore:
+
+```bash
+mysqlbinlog mysql-bin.000001 | mysql -u root -p my_database
+```
+
+---
+
+### 5. **Monitor replication status**
+
+```sql
+SHOW SLAVE STATUS\G
+```
+
+---
+
+### 6. **Stop and start replication slave**
+
+```sql
+STOP SLAVE;
+START SLAVE;
+```
+
+---
+
+### 7. **Add an index for query optimization**
+
+```sql
+CREATE INDEX idx_customer_id ON orders (customer_id);
+```
+
+---
+
+### 8. **Remove unused indexes**
+
+```sql
+DROP INDEX idx_customer_id ON orders;
+```
+
+---
+
+### 9. **Change a user’s password**
+
+```sql
+ALTER USER 'newuser'@'localhost' IDENTIFIED BY 'newpassword456';
+FLUSH PRIVILEGES;
+```
+
+---
+
+### 10. **Export a specific table to CSV**
+
+```sql
+SELECT * FROM employees
+INTO OUTFILE '/tmp/employees.csv'
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n';
+```
+
+---
+
+### 11. **Create a stored procedure**
+
+```sql
+DELIMITER //
+CREATE PROCEDURE GetEmployeeCount()
+BEGIN
+    SELECT COUNT(*) FROM employees;
+END //
+DELIMITER ;
+```
+
+---
+
+### 12. **View all stored procedures**
+
+```sql
+SHOW PROCEDURE STATUS WHERE Db = 'my_database';
+```
+
+---
+
+### 13. **Enable general query log for debugging**
+
+```sql
+SET GLOBAL general_log = 'ON';
+SET GLOBAL general_log_file = '/var/log/mysql/mysql-general.log';
+```
+
+---
+
+### 14. **Check table fragmentation and free space**
+
+```sql
+SELECT table_name,
+       data_free
+FROM information_schema.tables
+WHERE table_schema = 'my_database';
+```
+
+---
+
+### 15. **Migrate a table to InnoDB from MyISAM**
+
+```sql
+ALTER TABLE my_table ENGINE = InnoDB;
+```
+
+---
+
+If you want detailed explanations or more examples, feel free to ask!
 
 
 
