@@ -1523,6 +1523,186 @@ JOIN products p ON o.product_id = p.product_id;
 * Use **`INNER JOIN`** when you only want matching rows.
 
 ---
+-- USERS
+INSERT INTO users (user_id, name, email, created_at) VALUES
+(1, 'Alice Johnson', 'alice@example.com', '2024-01-15 10:00:00'),
+(2, 'Bob Smith', 'bob@example.com', '2024-02-20 09:30:00'),
+(3, 'Charlie Brown', 'charlie@example.com', '2024-03-05 12:45:00');
 
-Would you like a `.sql` file with all these JOIN examples and explanations included as comments?
+-- CATEGORIES
+INSERT INTO categories (category_id, category_name) VALUES
+(1, 'Electronics'),
+(2, 'Books'),
+(3, 'Clothing');
+
+-- PRODUCTS
+INSERT INTO products (product_id, name, category_id, price, stock_quantity) VALUES
+(1, 'Smartphone', 1, 699.99, 50),
+(2, 'Laptop', 1, 999.99, 30),
+(3, 'Novel', 2, 15.99, 200),
+(4, 'T-shirt', 3, 9.99, 100);
+
+-- ORDERS
+INSERT INTO orders (order_id, user_id, order_date, status, total_amount) VALUES
+(1, 1, '2024-06-01 14:00:00', 'Shipped', 709.98),
+(2, 2, '2024-06-05 16:20:00', 'Pending', 15.99),
+(3, 1, '2024-06-07 11:00:00', 'Cancelled', 1009.98);
+
+-- ORDER_ITEMS
+INSERT INTO order_items (order_item_id, order_id, product_id, quantity, unit_price) VALUES
+(1, 1, 1, 1, 699.99),
+(2, 1, 4, 1, 9.99),
+(3, 2, 3, 1, 15.99),
+(4, 3, 2, 1, 999.99),
+(5, 3, 4, 1, 9.99);
+
+-- PAYMENTS
+INSERT INTO payments (payment_id, order_id, payment_method, payment_date, amount) VALUES
+(1, 1, 'Credit Card', '2024-06-01 14:05:00', 709.98),
+(2, 2, 'PayPal', '2024-06-05 16:25:00', 15.99),
+(3, 3, 'Credit Card', '2024-06-07 11:10:00', 1009.98);
+
+-- ADDRESSES
+INSERT INTO addresses (address_id, user_id, city, state, zip_code, country) VALUES
+(1, 1, 'New York', 'NY', '10001', 'USA'),
+(2, 2, 'Los Angeles', 'CA', '90001', 'USA'),
+(3, 3, 'Chicago', 'IL', '60601', 'USA');
+
+-- REVIEWS
+INSERT INTO reviews (review_id, user_id, product_id, rating, review_text, review_date) VALUES
+(1, 1, 1, 5, 'Excellent smartphone!', '2024-06-10 10:00:00'),
+(2, 2, 3, 4, 'Great read, loved the characters.', '2024-06-11 15:30:00'),
+(3, 1, 4, 3, 'Average quality t-shirt.', '2024-06-12 09:00:00');
+
+-- CART
+INSERT INTO cart (cart_id, user_id, created_at) VALUES
+(1, 1, '2024-06-15 10:00:00'),
+(2, 2, '2024-06-16 11:00:00');
+
+-- CART_ITEMS
+INSERT INTO cart_items (cart_item_id, cart_id, product_id, quantity) VALUES
+(1, 1, 2, 1),
+(2, 1, 3, 2),
+(3, 2, 4, 3);
+
+
+Great! Here's a **complete SQL schema script** for the **e-commerce database** with the 10 tables we discussed, including primary keys, foreign keys, and relevant data types. This is designed to work with **PostgreSQL** or **MySQL** (minor tweaks may be needed between them).
+
+---
+
+## 🗂️ **E-Commerce SQL Schema Script (10 Tables)**
+
+```sql
+-- USERS
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CATEGORIES
+CREATE TABLE categories (
+    category_id SERIAL PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL
+);
+
+-- PRODUCTS
+CREATE TABLE products (
+    product_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    category_id INT,
+    price DECIMAL(10, 2),
+    stock_quantity INT,
+    FOREIGN KEY (category_id) REFERENCES categories(category_id)
+);
+
+-- ORDERS
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    user_id INT,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50),
+    total_amount DECIMAL(10, 2),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- ORDER_ITEMS
+CREATE TABLE order_items (
+    order_item_id SERIAL PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    unit_price DECIMAL(10, 2),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- PAYMENTS
+CREATE TABLE payments (
+    payment_id SERIAL PRIMARY KEY,
+    order_id INT,
+    payment_method VARCHAR(50),
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    amount DECIMAL(10, 2),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
+-- ADDRESSES
+CREATE TABLE addresses (
+    address_id SERIAL PRIMARY KEY,
+    user_id INT,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    zip_code VARCHAR(20),
+    country VARCHAR(100),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- REVIEWS
+CREATE TABLE reviews (
+    review_id SERIAL PRIMARY KEY,
+    user_id INT,
+    product_id INT,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    review_text TEXT,
+    review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- CART
+CREATE TABLE cart (
+    cart_id SERIAL PRIMARY KEY,
+    user_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- CART_ITEMS
+CREATE TABLE cart_items (
+    cart_item_id SERIAL PRIMARY KEY,
+    cart_id INT,
+    product_id INT,
+    quantity INT,
+    FOREIGN KEY (cart_id) REFERENCES cart(cart_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+```
+
+---
+
+## ✅ Optional: Insert Sample Data
+
+Would you like me to generate realistic sample data (20–50 rows per table) for this schema using `INSERT` statements or to provide a CSV/SQL file to download?
+
+Let me know which format you’d prefer:
+
+* SQL script with `INSERT` statements
+* CSV files per table
+* JSON format
+* A downloadable `.sql` file
+
+Also, specify whether you're using **PostgreSQL**, **MySQL**, or **SQLite**.
+
 
