@@ -1704,5 +1704,242 @@ Let me know which format you’d prefer:
 * A downloadable `.sql` file
 
 Also, specify whether you're using **PostgreSQL**, **MySQL**, or **SQLite**.
+Sure! Here's a comprehensive list of **SQL queries across all major topics** in the SQL domain, using **10 interrelated tables** from an **e-commerce database schema**. This should serve as a practical reference or exercise set for intermediate to advanced SQL skills.
+
+---
+
+### 🗂️ **Schema Design (10 Tables)**
+
+```plaintext
+1. users            (user_id, name, email, created_at)
+2. products         (product_id, name, category_id, price, stock_quantity)
+3. categories       (category_id, category_name)
+4. orders           (order_id, user_id, order_date, status, total_amount)
+5. order_items      (order_item_id, order_id, product_id, quantity, unit_price)
+6. payments         (payment_id, order_id, payment_method, payment_date, amount)
+7. addresses        (address_id, user_id, city, state, zip_code, country)
+8. reviews          (review_id, user_id, product_id, rating, review_text, review_date)
+9. cart             (cart_id, user_id, created_at)
+10. cart_items      (cart_item_id, cart_id, product_id, quantity)
+```
+
+---
+
+### ✅ **1. Basic SELECT**
+
+```sql
+SELECT name, email FROM users;
+```
+
+### ✅ **2. Filtering with WHERE**
+
+```sql
+SELECT * FROM products WHERE price > 100 AND stock_quantity > 0;
+```
+
+### ✅ **3. JOIN (INNER, LEFT, RIGHT)**
+
+```sql
+-- Get order details with product names
+SELECT o.order_id, p.name AS product_name, oi.quantity
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON p.product_id = oi.product_id;
+```
+
+### ✅ **4. GROUP BY + Aggregates**
+
+```sql
+-- Total spent by each user
+SELECT u.user_id, u.name, SUM(o.total_amount) AS total_spent
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+GROUP BY u.user_id, u.name;
+```
+
+### ✅ **5. Subqueries**
+
+```sql
+-- Users who made purchases above average order amount
+SELECT user_id, name
+FROM users
+WHERE user_id IN (
+    SELECT user_id FROM orders
+    WHERE total_amount > (SELECT AVG(total_amount) FROM orders)
+);
+```
+
+### ✅ **6. Window Functions**
+
+```sql
+-- Running total of payments by user
+SELECT 
+    user_id,
+    order_id,
+    amount,
+    SUM(amount) OVER (PARTITION BY user_id ORDER BY payment_date) AS running_total
+FROM orders o
+JOIN payments p ON o.order_id = p.order_id;
+```
+
+### ✅ **7. CASE Statements**
+
+```sql
+-- Categorize products based on price range
+SELECT name,
+       price,
+       CASE
+         WHEN price < 50 THEN 'Low'
+         WHEN price BETWEEN 50 AND 200 THEN 'Medium'
+         ELSE 'High'
+       END AS price_category
+FROM products;
+```
+
+### ✅ **8. EXISTS / NOT EXISTS**
+
+```sql
+-- Products that have never been ordered
+SELECT name
+FROM products p
+WHERE NOT EXISTS (
+    SELECT 1 FROM order_items oi WHERE oi.product_id = p.product_id
+);
+```
+
+### ✅ **9. Common Table Expressions (CTE)**
+
+```sql
+-- Get top selling products
+WITH product_sales AS (
+  SELECT product_id, SUM(quantity) AS total_sold
+  FROM order_items
+  GROUP BY product_id
+)
+SELECT p.name, ps.total_sold
+FROM product_sales ps
+JOIN products p ON ps.product_id = p.product_id
+ORDER BY ps.total_sold DESC;
+```
+
+### ✅ **10. UNION / UNION ALL**
+
+```sql
+-- All product IDs from cart and order items
+SELECT product_id FROM cart_items
+UNION
+SELECT product_id FROM order_items;
+```
+
+### ✅ **11. Aggregation with HAVING**
+
+```sql
+-- Users who placed more than 3 orders
+SELECT user_id, COUNT(*) AS order_count
+FROM orders
+GROUP BY user_id
+HAVING COUNT(*) > 3;
+```
+
+### ✅ **12. Self Join**
+
+```sql
+-- Users in the same city
+SELECT a1.user_id AS user1, a2.user_id AS user2, a1.city
+FROM addresses a1
+JOIN addresses a2 ON a1.city = a2.city AND a1.user_id <> a2.user_id;
+```
+
+### ✅ **13. Updating with JOIN**
+
+```sql
+-- Reduce price of all products in category 'Electronics' by 10%
+UPDATE products
+SET price = price * 0.9
+WHERE category_id IN (
+    SELECT category_id FROM categories WHERE category_name = 'Electronics'
+);
+```
+
+### ✅ **14. DELETE with Condition**
+
+```sql
+-- Delete inactive carts older than 30 days
+DELETE FROM cart
+WHERE created_at < NOW() - INTERVAL '30 days';
+```
+
+### ✅ **15. Advanced Filtering**
+
+```sql
+-- Orders with multiple items
+SELECT order_id
+FROM order_items
+GROUP BY order_id
+HAVING COUNT(*) > 1;
+```
+
+### ✅ **16. Correlated Subquery**
+
+```sql
+-- Products that cost more than the average for their category
+SELECT name, price
+FROM products p
+WHERE price > (
+    SELECT AVG(price) FROM products WHERE category_id = p.category_id
+);
+```
+
+### ✅ **17. Top-N Queries**
+
+```sql
+-- Top 5 most expensive products
+SELECT * FROM products
+ORDER BY price DESC
+LIMIT 5;
+```
+
+### ✅ **18. PIVOT-like Query (Conditional Aggregation)**
+
+```sql
+-- Total orders per status
+SELECT
+  COUNT(*) FILTER (WHERE status = 'Pending') AS pending,
+  COUNT(*) FILTER (WHERE status = 'Shipped') AS shipped,
+  COUNT(*) FILTER (WHERE status = 'Cancelled') AS cancelled
+FROM orders;
+```
+
+### ✅ **19. Multi-table Aggregation**
+
+```sql
+-- Total revenue by category
+SELECT c.category_name, SUM(oi.quantity * oi.unit_price) AS total_revenue
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+GROUP BY c.category_name;
+```
+
+### ✅ **20. Nested CTEs + Window Functions**
+
+```sql
+-- Rank users by total spend and get top 3
+WITH user_spend AS (
+    SELECT u.user_id, u.name, SUM(o.total_amount) AS total_spent
+    FROM users u
+    JOIN orders o ON u.user_id = o.user_id
+    GROUP BY u.user_id, u.name
+),
+ranked AS (
+    SELECT *, RANK() OVER (ORDER BY total_spent DESC) AS rank
+    FROM user_spend
+)
+SELECT * FROM ranked WHERE rank <= 3;
+```
+
+---
+
+Would you like a **dataset or schema script** to go along with this for testing in PostgreSQL/MySQL?
 
 
