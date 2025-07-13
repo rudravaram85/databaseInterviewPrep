@@ -119,4 +119,120 @@ With this setup:
 * All refresh attempts (success or failure) are logged.
 * Data is safely staged using a temporary table to avoid incomplete updates.
 
-Would you like this packaged into a single SQL file for easier deployment?
+Great question! Multiple queries in a **stored procedure** are often necessary for **real-time, multi-step logic** — just like how code in a regular application may need to:
+
+1. Check a condition,
+2. Update data based on that condition,
+3. Log the result,
+4. Handle errors or rollback if needed.
+
+---
+
+## 🧠 **Why Multiple Queries Are Needed in Stored Procedures**
+
+Stored procedures let you group **multiple SQL statements** together to perform a task as one unit. This is essential when:
+
+* The task requires **conditional logic**.
+* You need to **ensure consistency** across steps (often using transactions).
+* You want to **avoid network round-trips** for performance.
+* You want to **log** or **handle errors** gracefully.
+
+---
+
+## 📦 Real-Time Use Case Example: **Order Processing System**
+
+### 🛒 Scenario: Placing an Order in an E-commerce System
+
+Let’s say a user places an order. The system needs to:
+
+1. **Check if the product is in stock**.
+2. **Deduct inventory**.
+3. **Create the order record**.
+4. **Insert a billing record**.
+5. **Log the transaction**.
+6. **Rollback** everything if anything fails.
+
+You **can’t** do that in a single SQL query — you need a **stored procedure**.
+
+---
+
+### ✅ Example: Order Processing Procedure
+
+```sql
+DELIMITER $$
+
+CREATE PROCEDURE place_order(
+  IN product_id INT,
+  IN customer_id INT,
+  IN quantity INT
+)
+BEGIN
+  DECLARE stock_available INT DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    INSERT INTO order_log (order_time, status, message)
+    VALUES (NOW(), 'FAILED', 'Transaction rolled back due to error');
+  END;
+
+  START TRANSACTION;
+
+  -- 1. Check stock
+  SELECT stock INTO stock_available
+  FROM products
+  WHERE id = product_id FOR UPDATE;
+
+  IF stock_available < quantity THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Insufficient stock';
+  END IF;
+
+  -- 2. Deduct stock
+  UPDATE products
+  SET stock = stock - quantity
+  WHERE id = product_id;
+
+  -- 3. Create order
+  INSERT INTO orders (product_id, customer_id, quantity, order_date)
+  VALUES (product_id, customer_id, quantity, NOW());
+
+  -- 4. Create billing entry
+  INSERT INTO billing (customer_id, amount, billing_date)
+  VALUES (customer_id, quantity * 100, NOW()); -- assume fixed price
+
+  -- 5. Log success
+  INSERT INTO order_log (order_time, status, message)
+  VALUES (NOW(), 'SUCCESS', 'Order placed successfully');
+
+  COMMIT;
+END$$
+
+DELIMITER ;
+```
+
+---
+
+### 🔍 Why Multiple Queries Here?
+
+| Step                    | Why It’s Needed                        |
+| ----------------------- | -------------------------------------- |
+| `SELECT stock`          | To check if the item can be sold.      |
+| `UPDATE products`       | To reserve the stock.                  |
+| `INSERT INTO orders`    | To record the actual order.            |
+| `INSERT INTO billing`   | To initiate payment or tracking.       |
+| `INSERT INTO order_log` | For monitoring and troubleshooting.    |
+| `ROLLBACK`              | To undo all actions if anything fails. |
+
+---
+
+## 🔄 Summary
+
+**Multiple queries are essential in stored procedures** to execute a full business logic unit that depends on:
+
+* Multiple data operations,
+* Error handling,
+* Conditional logic,
+* Logging or auditing.
+
+Let me know if you want a simpler or different domain example — like finance, HR, or IoT.
