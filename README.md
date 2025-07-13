@@ -1084,4 +1084,162 @@ WHERE balance > (
 
 ---
 
-Would you like a `.sql` file with these queries formatted and commented?
+Excellent choice! **Subqueries**, especially correlated ones, can be less efficient than **JOINs**, especially on large datasets. Below, I’ve converted all 5 subqueries to their **JOIN-based equivalents** while maintaining the original logic and improving performance.
+
+---
+
+## 🔁 1. **Banking** — Customers with accounts above average balance
+
+### ✅ Original (Subquery):
+
+```sql
+SELECT customer_name
+FROM customers
+WHERE customer_id IN (
+    SELECT customer_id
+    FROM accounts
+    WHERE balance > (
+        SELECT AVG(balance) FROM accounts
+    )
+);
+```
+
+### 🔄 Converted (JOIN):
+
+```sql
+SELECT DISTINCT c.customer_name
+FROM customers c
+JOIN accounts a ON c.customer_id = a.customer_id
+JOIN (
+    SELECT AVG(balance) AS avg_balance
+    FROM accounts
+) avg_sub ON a.balance > avg_sub.avg_balance;
+```
+
+---
+
+## 🔁 2. **E-commerce** — Products that were ordered at least once
+
+### ✅ Original (Subquery):
+
+```sql
+SELECT product_name
+FROM products
+WHERE product_id IN (
+    SELECT DISTINCT product_id FROM orders
+);
+```
+
+### 🔄 Converted (JOIN):
+
+```sql
+SELECT DISTINCT p.product_name
+FROM products p
+JOIN orders o ON p.product_id = o.product_id;
+```
+
+---
+
+## 🔁 3. **Banking** — Accounts with max balance per branch
+
+### ✅ Original (Subquery):
+
+```sql
+SELECT account_number, branch_id, balance
+FROM accounts a
+WHERE balance = (
+    SELECT MAX(balance)
+    FROM accounts
+    WHERE branch_id = a.branch_id
+);
+```
+
+### 🔄 Converted (JOIN):
+
+```sql
+SELECT a.account_number, a.branch_id, a.balance
+FROM accounts a
+JOIN (
+    SELECT branch_id, MAX(balance) AS max_balance
+    FROM accounts
+    GROUP BY branch_id
+) b_max ON a.branch_id = b_max.branch_id AND a.balance = b_max.max_balance;
+```
+
+---
+
+## 🔁 4. **E-commerce** — Customers who ordered the most expensive product
+
+### ✅ Original (Subquery):
+
+```sql
+SELECT DISTINCT c.customer_name
+FROM ecommerce_customers c
+JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.product_id = (
+    SELECT product_id
+    FROM products
+    ORDER BY price DESC
+    LIMIT 1
+);
+```
+
+### 🔄 Converted (JOIN):
+
+```sql
+-- PostgreSQL / MySQL 8+ with CTE & ROW_NUMBER for top product
+WITH top_product AS (
+    SELECT product_id
+    FROM products
+    ORDER BY price DESC
+    LIMIT 1
+)
+SELECT DISTINCT c.customer_name
+FROM ecommerce_customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN top_product tp ON o.product_id = tp.product_id;
+```
+
+---
+
+## 🔁 5. **Banking** — Accounts with balance > total balance of customer 1
+
+### ✅ Original (Subquery):
+
+```sql
+SELECT account_number, balance
+FROM accounts
+WHERE balance > (
+    SELECT SUM(balance)
+    FROM accounts
+    WHERE customer_id = 1
+);
+```
+
+### 🔄 Converted (JOIN):
+
+```sql
+SELECT a.account_number, a.balance
+FROM accounts a
+JOIN (
+    SELECT SUM(balance) AS total_balance
+    FROM accounts
+    WHERE customer_id = 1
+) cust1_total ON a.balance > cust1_total.total_balance;
+```
+
+---
+
+## ✅ Summary Table: Subqueries Converted to JOINs
+
+| # | Description                                  | Benefit of JOIN                |
+| - | -------------------------------------------- | ------------------------------ |
+| 1 | Above-average account balance                | Avoids nested aggregation      |
+| 2 | Products ever ordered                        | Simple inner join              |
+| 3 | Max balance per branch                       | Avoids correlated subquery     |
+| 4 | Customers who ordered most expensive product | Easier to index/join           |
+| 5 | Balance > total of one customer              | More efficient via scalar JOIN |
+
+---
+
+Would you like me to package these optimized JOIN queries into a downloadable `.sql` file?
