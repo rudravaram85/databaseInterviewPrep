@@ -1,3 +1,100 @@
+-- Schema for Banking Domain
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE accounts (
+    account_number INT PRIMARY KEY,
+    customer_id INT,
+    balance DECIMAL(12, 2),
+    branch_id INT,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+-- Schema for E-commerce Domain
+CREATE TABLE ecommerce_customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10, 2),
+    discontinued BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT,
+    product_id INT,
+    quantity INT,
+    status VARCHAR(20),
+    FOREIGN KEY (customer_id) REFERENCES ecommerce_customers(customer_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- Seed Data for Banking Domain
+INSERT INTO customers VALUES (1, 'John Doe');
+INSERT INTO customers VALUES (2, 'Jane Smith');
+INSERT INTO customers VALUES (3, 'Michael Johnson');
+INSERT INTO customers VALUES (4, 'Emily Davis');
+INSERT INTO customers VALUES (5, 'William Brown');
+INSERT INTO customers VALUES (6, 'Linda Wilson');
+INSERT INTO customers VALUES (7, 'David Miller');
+INSERT INTO customers VALUES (8, 'Susan Moore');
+INSERT INTO customers VALUES (9, 'Robert Taylor');
+INSERT INTO customers VALUES (10, 'Patricia Anderson');
+
+INSERT INTO accounts VALUES (1001, 1, 50000.00, 1);
+INSERT INTO accounts VALUES (1002, 2, 200000.00, 1);
+INSERT INTO accounts VALUES (1003, 3, 75000.00, 2);
+INSERT INTO accounts VALUES (1004, 4, 10000.00, 2);
+INSERT INTO accounts VALUES (1005, 5, 250000.00, 3);
+INSERT INTO accounts VALUES (1006, 6, 34000.00, 3);
+INSERT INTO accounts VALUES (1007, 7, 55000.00, 4);
+INSERT INTO accounts VALUES (1008, 8, 80000.00, 4);
+INSERT INTO accounts VALUES (1009, 9, 62000.00, 5);
+INSERT INTO accounts VALUES (1010, 10, 91000.00, 5);
+
+-- Seed Data for E-commerce Domain
+INSERT INTO ecommerce_customers VALUES (1, 'Alice Jackson');
+INSERT INTO ecommerce_customers VALUES (2, 'Brian Thomas');
+INSERT INTO ecommerce_customers VALUES (3, 'Carol White');
+INSERT INTO ecommerce_customers VALUES (4, 'Derek Harris');
+INSERT INTO ecommerce_customers VALUES (5, 'Eva Martin');
+INSERT INTO ecommerce_customers VALUES (6, 'Frank Garcia');
+INSERT INTO ecommerce_customers VALUES (7, 'Grace Lee');
+INSERT INTO ecommerce_customers VALUES (8, 'Henry Walker');
+INSERT INTO ecommerce_customers VALUES (9, 'Ivy Hall');
+INSERT INTO ecommerce_customers VALUES (10, 'Jack Young');
+
+INSERT INTO products VALUES (1, 'Bluetooth Speaker', 'Electronics', 1999.00, FALSE);
+INSERT INTO products VALUES (2, 'Running Shoes', 'Sports', 2999.00, FALSE);
+INSERT INTO products VALUES (3, 'Smartphone', 'Electronics', 24999.00, FALSE);
+INSERT INTO products VALUES (4, 'Cookware Set', 'Home', 3499.00, FALSE);
+INSERT INTO products VALUES (5, 'T-shirt', 'Clothing', 499.00, FALSE);
+INSERT INTO products VALUES (6, 'Wireless Mouse', 'Electronics', 999.00, TRUE);
+INSERT INTO products VALUES (7, 'Office Chair', 'Home', 4999.00, FALSE);
+INSERT INTO products VALUES (8, 'Book: SQL Basics', 'Books', 399.00, FALSE);
+INSERT INTO products VALUES (9, 'Fitness Band', 'Electronics', 1999.00, FALSE);
+INSERT INTO products VALUES (10, 'Football', 'Sports', 799.00, FALSE);
+
+INSERT INTO orders VALUES (1, 1, 3, 1, 'Pending');
+INSERT INTO orders VALUES (2, 2, 2, 2, 'Shipped');
+INSERT INTO orders VALUES (3, 3, 1, 1, 'Delivered');
+INSERT INTO orders VALUES (4, 4, 4, 1, 'Pending');
+INSERT INTO orders VALUES (5, 5, 6, 3, 'Cancelled');
+INSERT INTO orders VALUES (6, 6, 5, 2, 'Delivered');
+INSERT INTO orders VALUES (7, 7, 7, 1, 'Pending');
+INSERT INTO orders VALUES (8, 8, 9, 1, 'Shipped');
+INSERT INTO orders VALUES (9, 9, 8, 1, 'Delivered');
+INSERT INTO orders VALUES (10, 10, 10, 2, 'Pending');
+
+
+
 Sure! Here's a **detailed guide to SQL topics**, with **each topic explained thoroughly**, followed by **two examples**:
 
 1. **Banking domain** example
