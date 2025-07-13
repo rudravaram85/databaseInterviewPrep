@@ -1940,6 +1940,289 @@ SELECT * FROM ranked WHERE rank <= 3;
 
 ---
 
-Would you like a **dataset or schema script** to go along with this for testing in PostgreSQL/MySQL?
+Absolutely! Here's a curated list of **20 advanced SQL queries** for the **e-commerce schema** you’re using. Each query involves **at least 5 tables**, along with a clear **business requirement**. These queries will help you understand multi-table joins, aggregations, filtering, subqueries, window functions, and business logic applications in SQL.
+
+---
+
+## ✅ **20 SQL Queries on E-Commerce Schema (5+ Tables Each)**
+
+---
+
+### 1. **Customer Order Summary with Reviews and Shipping Info**
+
+**📌 Requirement**: For each customer, show all order details including products, review (if any), and shipping address.
+
+```sql
+SELECT 
+    u.user_id, u.name, o.order_id, o.order_date, o.status,
+    p.name AS product_name, oi.quantity, oi.unit_price,
+    r.rating, r.review_text, a.city, a.state
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+LEFT JOIN reviews r ON u.user_id = r.user_id AND r.product_id = p.product_id
+LEFT JOIN addresses a ON u.user_id = a.user_id;
+```
+
+---
+
+### 2. **Top 5 Cities by Total Sales**
+
+**📌 Requirement**: Find the top 5 cities with the highest total sales from completed orders.
+
+```sql
+SELECT 
+    a.city, SUM(o.total_amount) AS total_sales
+FROM orders o
+JOIN users u ON o.user_id = u.user_id
+JOIN addresses a ON u.user_id = a.user_id
+WHERE o.status = 'Shipped'
+GROUP BY a.city
+ORDER BY total_sales DESC
+LIMIT 5;
+```
+
+---
+
+### 3. **Product Review & Purchase Correlation**
+
+**📌 Requirement**: List all products that were purchased and reviewed by the same user.
+
+```sql
+SELECT DISTINCT
+    u.user_id, u.name, p.name AS product_name,
+    r.rating, r.review_text
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN reviews r ON r.user_id = u.user_id AND r.product_id = p.product_id;
+```
+
+---
+
+### 4. **Cart-to-Order Conversion Rate per User**
+
+**📌 Requirement**: For each user, check if products in cart were later ordered.
+
+```sql
+SELECT 
+    u.user_id, u.name, p.name AS product_name,
+    CASE WHEN oi.product_id IS NOT NULL THEN 'Ordered' ELSE 'Not Ordered' END AS order_status
+FROM users u
+JOIN cart c ON u.user_id = c.user_id
+JOIN cart_items ci ON c.cart_id = ci.cart_id
+JOIN products p ON ci.product_id = p.product_id
+LEFT JOIN order_items oi ON p.product_id = oi.product_id
+LEFT JOIN orders o ON oi.order_id = o.order_id AND o.user_id = u.user_id;
+```
+
+---
+
+### 5. **Repeat Purchase Analysis**
+
+**📌 Requirement**: List users who purchased the same product more than once in different orders.
+
+```sql
+SELECT 
+    u.user_id, u.name, p.name AS product_name, COUNT(DISTINCT o.order_id) AS purchase_count
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+GROUP BY u.user_id, u.name, p.name
+HAVING COUNT(DISTINCT o.order_id) > 1;
+```
+
+---
+
+### 6. **Average Order Value by Product Category**
+
+**📌 Requirement**: Calculate average order value per category, based on order items.
+
+```sql
+SELECT 
+    c.category_name, AVG(oi.quantity * oi.unit_price) AS avg_order_value
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+JOIN orders o ON oi.order_id = o.order_id
+WHERE o.status = 'Shipped'
+GROUP BY c.category_name;
+```
+
+---
+
+### 7. **User's Complete Order & Review Trail**
+
+**📌 Requirement**: For each user, show orders, items purchased, reviews, and payment method.
+
+```sql
+SELECT 
+    u.name, o.order_id, p.name AS product_name, oi.quantity,
+    r.rating, r.review_text, pay.payment_method
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+LEFT JOIN reviews r ON r.user_id = u.user_id AND r.product_id = p.product_id
+JOIN payments pay ON o.order_id = pay.order_id;
+```
+
+---
+
+### 8. **High-Value Customers Who Also Leave Reviews**
+
+**📌 Requirement**: Identify users who spent over \$1000 and also reviewed at least 2 products.
+
+```sql
+SELECT 
+    u.user_id, u.name, SUM(o.total_amount) AS total_spent, COUNT(DISTINCT r.review_id) AS reviews_given
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN reviews r ON u.user_id = r.user_id
+GROUP BY u.user_id, u.name
+HAVING SUM(o.total_amount) > 1000 AND COUNT(DISTINCT r.review_id) >= 2;
+```
+
+---
+
+### 9. **Most Reviewed Products by Category**
+
+**📌 Requirement**: Show the most reviewed product in each category.
+
+```sql
+WITH review_counts AS (
+    SELECT p.product_id, p.name, p.category_id, COUNT(r.review_id) AS review_count
+    FROM products p
+    LEFT JOIN reviews r ON p.product_id = r.product_id
+    GROUP BY p.product_id, p.name, p.category_id
+),
+ranked_reviews AS (
+    SELECT *, RANK() OVER (PARTITION BY category_id ORDER BY review_count DESC) AS rnk
+    FROM review_counts
+)
+SELECT rc.name AS product_name, c.category_name, rc.review_count
+FROM ranked_reviews rc
+JOIN categories c ON rc.category_id = c.category_id
+WHERE rnk = 1;
+```
+
+---
+
+### 10. **Order Fulfillment Time Report**
+
+**📌 Requirement**: Show time between order date and payment date for each order.
+
+```sql
+SELECT 
+    u.name, o.order_id, o.order_date, p.payment_date,
+    EXTRACT(EPOCH FROM (p.payment_date - o.order_date))/3600 AS hours_to_payment
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN payments p ON o.order_id = p.order_id;
+```
+
+---
+
+### 11. **Top Selling Product in Each City**
+
+**📌 Requirement**: Find the best-selling product in terms of quantity for each city.
+
+```sql
+WITH sales_by_city AS (
+    SELECT 
+        a.city, p.product_id, p.name AS product_name, SUM(oi.quantity) AS total_sold
+    FROM order_items oi
+    JOIN orders o ON oi.order_id = o.order_id
+    JOIN users u ON o.user_id = u.user_id
+    JOIN addresses a ON u.user_id = a.user_id
+    JOIN products p ON oi.product_id = p.product_id
+    GROUP BY a.city, p.product_id, p.name
+),
+ranked_sales AS (
+    SELECT *, RANK() OVER (PARTITION BY city ORDER BY total_sold DESC) AS rnk
+    FROM sales_by_city
+)
+SELECT city, product_name, total_sold
+FROM ranked_sales
+WHERE rnk = 1;
+```
+
+---
+
+### 12. **Users with Abandoned Carts and Later Purchases**
+
+**📌 Requirement**: Identify users who added products to cart but didn’t order immediately, but purchased later.
+
+```sql
+SELECT DISTINCT u.user_id, u.name
+FROM users u
+JOIN cart c ON u.user_id = c.user_id
+JOIN cart_items ci ON c.cart_id = ci.cart_id
+JOIN products p ON ci.product_id = p.product_id
+LEFT JOIN order_items oi ON p.product_id = oi.product_id
+LEFT JOIN orders o ON oi.order_id = o.order_id AND o.user_id = u.user_id
+WHERE o.order_date > c.created_at;
+```
+
+---
+
+### 13. **Cross-Category Purchase Analysis**
+
+**📌 Requirement**: Find users who purchased from more than 2 different product categories.
+
+```sql
+SELECT u.user_id, u.name, COUNT(DISTINCT c.category_id) AS category_count
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+GROUP BY u.user_id, u.name
+HAVING COUNT(DISTINCT c.category_id) > 2;
+```
+
+---
+
+### 14. **Category Revenue Breakdown per State**
+
+**📌 Requirement**: Show how much each state contributed to revenue in each product category.
+
+```sql
+SELECT 
+    a.state, c.category_name, SUM(oi.quantity * oi.unit_price) AS revenue
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+JOIN categories c ON p.category_id = c.category_id
+JOIN users u ON o.user_id = u.user_id
+JOIN addresses a ON u.user_id = a.user_id
+GROUP BY a.state, c.category_name;
+```
+
+---
+
+### 15. \*\*Find Products Ordered, Reviewed
+
+
+, and Still in Cart\*\*
+**📌 Requirement**: List products that users have ordered, reviewed, and also added to cart again.
+
+```sql
+SELECT DISTINCT p.name AS product_name, u.name
+FROM users u
+JOIN orders o ON u.user_id = o.user_id
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN reviews r ON r.user_id = u.user_id AND r.product_id = oi.product_id
+JOIN cart c ON u.user_id = c.user_id
+JOIN cart_items ci ON ci.cart_id = c.cart_id AND ci.product_id = oi.product_id
+JOIN products p ON p.product_id = oi.product_id;
+```
+
+---
+
+Would you like **5 more bonus queries** or want me to generate a `.sql` file containing all of these queries?
 
 
